@@ -12,34 +12,33 @@
  */
 package org.camunda.bpm.engine.test.standalone.history;
 
-import static org.camunda.bpm.engine.ProcessEngineConfiguration.DB_SCHEMA_UPDATE_CREATE_DROP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import org.camunda.bpm.engine.HistoryService;
 import org.camunda.bpm.engine.IdentityService;
-import org.camunda.bpm.engine.ProcessEngine;
 import org.camunda.bpm.engine.ProcessEngineConfiguration;
 import org.camunda.bpm.engine.RepositoryService;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.history.HistoricIdentityLinkLog;
-import org.camunda.bpm.engine.history.HistoricJobLog;
 import org.camunda.bpm.engine.impl.cfg.ProcessEngineConfigurationImpl;
 import org.camunda.bpm.engine.impl.history.HistoryLevel;
 import org.camunda.bpm.engine.impl.history.event.HistoryEventTypes;
-import org.camunda.bpm.engine.impl.interceptor.Command;
-import org.camunda.bpm.engine.impl.interceptor.CommandContext;
-import org.camunda.bpm.engine.impl.persistence.entity.JobEntity;
-import org.camunda.bpm.engine.runtime.Job;
 import org.camunda.bpm.engine.task.Task;
-import org.junit.After;
+import org.camunda.bpm.engine.test.Deployment;
+import org.camunda.bpm.engine.test.util.ProcessEngineBootstrapRule;
+import org.camunda.bpm.engine.test.util.ProcessEngineTestRule;
+import org.camunda.bpm.engine.test.util.ProvidedProcessEngineRule;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
@@ -59,72 +58,45 @@ public class CustomHistoryLevelIdentityLinkTest {
   @Parameter
   public List<HistoryEventTypes> eventTypes;
 
+  protected CustomHistoryLevelIdentityLink customHistoryLevel = new CustomHistoryLevelIdentityLink();
+
+  protected ProcessEngineBootstrapRule bootstrapRule = new ProcessEngineBootstrapRule() {
+    public ProcessEngineConfiguration configureEngine(ProcessEngineConfigurationImpl configuration) {
+      List<HistoryLevel> levels = new ArrayList<>();
+      levels.add(customHistoryLevel);
+      configuration.setCustomHistoryLevels(levels);
+      configuration.setHistory("aCustomHistoryLevelIL");
+      return configuration;
+    }
+  };
+  protected ProvidedProcessEngineRule engineRule = new ProvidedProcessEngineRule(bootstrapRule);
+  public ProcessEngineTestRule testRule = new ProcessEngineTestRule(engineRule);
+
+  @Rule
+  public RuleChain ruleChain = RuleChain.outerRule(bootstrapRule).around(engineRule).around(testRule);
+
   protected HistoryService historyService;
   protected RuntimeService runtimeService;
   protected IdentityService identityService;
   protected RepositoryService repositoryService;
   protected TaskService taskService;
   protected ProcessEngineConfigurationImpl engineConfiguration;
-  protected String deploymentId;
 
   @Before
   public void setUp() throws Exception {
-    ProcessEngine engine = configureEngine();
-    runtimeService = engine.getRuntimeService();
-    historyService = engine.getHistoryService();
-    identityService = engine.getIdentityService();
-    repositoryService = engine.getRepositoryService();
-    taskService = engine.getTaskService();
+    runtimeService = engineRule.getRuntimeService();
+    historyService = engineRule.getHistoryService();
+    identityService = engineRule.getIdentityService();
+    repositoryService = engineRule.getRepositoryService();
+    taskService = engineRule.getTaskService();
+
+    customHistoryLevel.setEventTypes(eventTypes);
   }
-
-  protected ProcessEngine configureEngine() {
-    engineConfiguration = (ProcessEngineConfigurationImpl)ProcessEngineConfiguration.createStandaloneInMemProcessEngineConfiguration();
-    engineConfiguration.setJdbcUrl("jdbc:h2:mem:" + getClass().getSimpleName());
-    engineConfiguration.setDatabaseSchemaUpdate(DB_SCHEMA_UPDATE_CREATE_DROP);
-
-    HistoryLevel customHisstoryLevelIL = new CustomHistoryLevelIdentityLink(eventTypes);
-    engineConfiguration.setCustomHistoryLevels(Arrays.asList(customHisstoryLevelIL));
-    engineConfiguration.setHistory("aCustomHistoryLevelIL");
-
-    return engineConfiguration.buildProcessEngine();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    identityService.clearAuthentication();
-    if (deploymentId != null) {
-      repositoryService.deleteDeployment(deploymentId, true);
-    }
-      final HistoryService historyService = engineConfiguration.getHistoryService();
-      engineConfiguration.getCommandExecutorTxRequired().execute(new Command<Void>() {
-        public Void execute(CommandContext commandContext) {
-
-          List<Job> jobs = historyService.findHistoryCleanupJobs();
-          for (Job job: jobs) {
-            commandContext.getJobManager().deleteJob((JobEntity) job);
-            commandContext.getHistoricJobLogManager().deleteHistoricJobLogByJobId(job.getId());
-          }
-
-          //cleanup "detached" historic job logs
-          final List<HistoricJobLog> list = historyService.createHistoricJobLogQuery().list();
-          for (HistoricJobLog jobLog: list) {
-            commandContext.getHistoricJobLogManager().deleteHistoricJobLogByJobId(jobLog.getJobId());
-          }
-
-          commandContext.getMeterLogManager().deleteAll();
-
-          return null;
-        }
-      });
-
-      engineConfiguration.close();
-    }
 
   @Test
+  @Deployment(resources = {"org/camunda/bpm/engine/test/api/runtime/oneTaskProcess.bpmn20.xml"})
   public void testDeletingIdentityLinkByProcDefId() {
     // Pre test
-    deploymentId = repositoryService.createDeployment().addClasspathResource("org/camunda/bpm/engine/test/api/runtime/oneTaskProcess.bpmn20.xml").deploy().getId();
-
     List<HistoricIdentityLinkLog> historicIdentityLinks = historyService.createHistoricIdentityLinkLogQuery().list();
     assertEquals(historicIdentityLinks.size(), 0);
 

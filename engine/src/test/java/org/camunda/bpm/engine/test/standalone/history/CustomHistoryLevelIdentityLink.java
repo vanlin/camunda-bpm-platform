@@ -22,6 +22,9 @@ public class CustomHistoryLevelIdentityLink implements HistoryLevel {
 
   private List<HistoryEventTypes> eventTypes;
 
+  public CustomHistoryLevelIdentityLink() {
+  }
+
   public CustomHistoryLevelIdentityLink(List<HistoryEventTypes> eventTypes) {
     this.eventTypes = eventTypes;
   }
@@ -47,4 +50,13 @@ public class CustomHistoryLevelIdentityLink implements HistoryLevel {
     }
     return false;
   }
+
+  public List<HistoryEventTypes> getEventTypes() {
+    return eventTypes;
+  }
+
+  public void setEventTypes(List<HistoryEventTypes> eventTypes) {
+    this.eventTypes = eventTypes;
+  }
+
 }
