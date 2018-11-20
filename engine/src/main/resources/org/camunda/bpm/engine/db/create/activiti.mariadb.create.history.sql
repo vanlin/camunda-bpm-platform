@@ -154,7 +154,7 @@ create table ACT_HI_DETAIL (
 
 create table ACT_HI_IDENTITYLINK (
     ID_ varchar(64) not null,
-    TIMESTAMP_ timestamp(3) not null,
+    TIMESTAMP_ datetime(3) not null,
     TYPE_ varchar(255),
     USER_ID_ varchar(255),
     GROUP_ID_ varchar(255),
@@ -219,7 +219,7 @@ create table ACT_HI_OP_LOG (
     JOB_DEF_ID_ varchar(64),
     BATCH_ID_ varchar(64),
     USER_ID_ varchar(255),
-    TIMESTAMP_ timestamp(3) not null,
+    TIMESTAMP_ datetime(3) not null,
     OPERATION_TYPE_ varchar(64),
     OPERATION_ID_ varchar(64),
     ENTITY_TYPE_ varchar(30),
@@ -238,8 +238,8 @@ create table ACT_HI_INCIDENT (
   ROOT_PROC_INST_ID_ varchar(64),
   PROC_INST_ID_ varchar(64),
   EXECUTION_ID_ varchar(64),
-  CREATE_TIME_ timestamp(3) not null,
-  END_TIME_ timestamp(3) null,
+  CREATE_TIME_ datetime(3) not null,
+  END_TIME_ datetime(3) null,
   INCIDENT_MSG_ varchar(4000),
   INCIDENT_TYPE_ varchar(255) not null,
   ACTIVITY_ID_ varchar(255),
@@ -255,9 +255,9 @@ create table ACT_HI_INCIDENT (
 
 create table ACT_HI_JOB_LOG (
     ID_ varchar(64) not null,
-    TIMESTAMP_ timestamp(3) not null,
+    TIMESTAMP_ datetime(3) not null,
     JOB_ID_ varchar(64) not null,
-    JOB_DUEDATE_ timestamp(3) NULL,
+    JOB_DUEDATE_ datetime(3) NULL,
     JOB_RETRIES_ integer,
     JOB_PRIORITY_ bigint NOT NULL DEFAULT 0,
     JOB_EXCEPTION_MSG_ varchar(4000),
@@ -298,7 +298,7 @@ create table ACT_HI_BATCH (
 
 create table ACT_HI_EXT_TASK_LOG (
     ID_ varchar(64) not null,
-    TIMESTAMP_ timestamp(3) not null,
+    TIMESTAMP_ datetime(3) not null,
     EXT_TASK_ID_ varchar(64) not null,
     RETRIES_ integer,
     TOPIC_NAME_ varchar(255),
